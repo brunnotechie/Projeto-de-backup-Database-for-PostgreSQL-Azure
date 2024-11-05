@@ -1,0 +1,80 @@
+provider "azurerm" {
+  version = "~> 2.46.0"
+  features {}
+}
+
+# Crie o Resource Group
+resource "azurerm_resource_group" "postgres_rg" {
+  name     = "postgres-rg"
+  location = "West Europe"
+}
+
+# Provisione o servidor de banco de dados PostgreSQL
+resource "azurerm_postgresql_server" "postgres_server" {
+  name                = "postgres-server-123"
+  location            = azurerm_resource_group.postgres_rg.location
+  resource_group_name = azurerm_resource_group.postgres_rg.name
+
+  administrator_login          = "postgresadmin"
+  administrator_login_password = "SuperSecurePassword123!"
+
+  sku_name   = "B_Gen5_2"
+  version    = "11"
+  storage_mb = 5120
+}
+
+# Crie o banco de dados PostgreSQL
+resource "azurerm_postgresql_database" "postgres_database" {
+  name                = "postgres-db"
+  resource_group_name = azurerm_resource_group.postgres_rg.name
+  server_name         = azurerm_postgresql_server.postgres_server.name
+  charset             = "UTF8"
+  collation           = "English_United States.1252"
+}
+
+# Crie uma regra de firewall para permitir acesso à aplicação cliente
+resource "azurerm_postgresql_firewall_rule" "postgres_firewall" {
+  name                = "client-access"
+  resource_group_name = azurerm_resource_group.postgres_rg.name
+  server_name         = azurerm_postgresql_server.postgres_server.name
+  start_ip_address    = "0.0.0.0"
+  end_ip_address      = "0.0.0.0"
+}
+
+# Crie um schema e uma tabela de exemplo no banco de dados
+resource "null_resource" "postgres_schema_and_table" {
+  depends_on = [azurerm_postgresql_database.postgres_database]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      psql -h ${azurerm_postgresql_server.postgres_server.fqdn} -U ${azurerm_postgresql_server.postgres_server.administrator_login} -d postgres -c "CREATE SCHEMA meu_schema;"
+      psql -h ${azurerm_postgresql_server.postgres_server.fqdn} -U ${azurerm_postgresql_server.postgres_server.administrator_login} -d postgres -c "
+        CREATE TABLE meu_schema.minha_tabela (
+          id SERIAL PRIMARY KEY,
+          nome VARCHAR(50) NOT NULL,
+          email VARCHAR(100) NOT NULL,
+          data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );"
+    EOT
+  }
+}
+
+# Insira dados de exemplo na tabela
+resource "null_resource" "postgres_sample_data" {
+  depends_on = [null_resource.postgres_schema_and_table]
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      psql -h ${azurerm_postgresql_server.postgres_server.fqdn} -U ${azurerm_postgresql_server.postgres_server.administrator_login} -d postgres -c "
+        INSERT INTO meu_schema.minha_tabela (nome, email)
+        VALUES
+          ('João Silva', 'joao.silva@example.com'),
+          ('Maria Oliveira', 'maria.oliveira@example.com'),
+          ('Pedro Santos', 'pedro.santos@example.com');"
+    EOT
+  }
+}
+
+output "postgres_connection_string" {
+  value = "postgresql://${azurerm_postgresql_server.postgres_server.administrator_login}:${azurerm_postgresql_server.postgres_server.administrator_login_password}@${azurerm_postgresql_server.postgres_server.fqdn}:5432/postgres"
+}
