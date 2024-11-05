@@ -1,0 +1,63 @@
+- hosts: localhost
+  connection: local
+  vars:
+    resource_group: postgres-rg
+    location: West Europe
+    postgres_server_name: postgres-server-123
+    postgres_database_name: postgres-db
+    postgres_admin_user: postgresadmin
+    postgres_admin_password: SuperSecurePassword123!
+
+  tasks:
+
+    - name: Criar Resource Group
+      azure_rm_resourcegroup:
+        name: "{{ resource_group }}"
+        location: "{{ location }}"
+
+    - name: Provisionar Servidor de Banco de Dados PostgreSQL
+      azure_rm_postgresqlserver:
+        resource_group: "{{ resource_group }}"
+        name: "{{ postgres_server_name }}"
+        sku: B_Gen5_2
+        storage_mb: 5120
+        admin_username: "{{ postgres_admin_user }}"
+        admin_password: "{{ postgres_admin_password }}"
+
+    - name: Criar Banco de Dados PostgreSQL
+      azure_rm_postgresqldatabase:
+        resource_group: "{{ resource_group }}"
+        server_name: "{{ postgres_server_name }}"
+        name: "{{ postgres_database_name }}"
+
+    - name: Criar Regra de Firewall
+      azure_rm_postgresqlfirewallrule:
+        resource_group: "{{ resource_group }}"
+        server_name: "{{ postgres_server_name }}"
+        name: client-access
+        start_ip_address: 0.0.0.0
+        end_ip_address: 0.0.0.0
+
+    - name: Criar Schema e Tabela
+      command: |
+        psql -h {{ postgres_server_name }}.postgres.database.azure.com -U {{ postgres_admin_user }}@{{ postgres_server_name }} -d postgres -c "
+          CREATE SCHEMA meu_schema;
+          CREATE TABLE meu_schema.minha_tabela (
+            id SERIAL PRIMARY KEY,
+            nome VARCHAR(50) NOT NULL,
+            email VARCHAR(100) NOT NULL,
+            data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          );"
+
+    - name: Inserir Dados de Exemplo
+      command: |
+        psql -h {{ postgres_server_name }}.postgres.database.azure.com -U {{ postgres_admin_user }}@{{ postgres_server_name }} -d postgres -c "
+          INSERT INTO meu_schema.minha_tabela (nome, email)
+          VALUES
+            ('João Silva', 'joao.silva@example.com'),
+            ('Maria Oliveira', 'maria.oliveira@example.com'),
+            ('Pedro Santos', 'pedro.santos@example.com');"
+
+    - name: Exibir Cadeia de Conexão
+      debug:
+        msg: "postgresql://{{ postgres_admin_user }}@{{ postgres_server_name }}:{{ postgres_admin_password }}@{{ postgres_server_name }}.postgres.database.azure.com:5432/postgres"
