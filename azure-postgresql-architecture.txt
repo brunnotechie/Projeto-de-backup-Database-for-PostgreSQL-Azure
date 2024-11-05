@@ -1,0 +1,33 @@
+Aqui está a proposta de arquitetura para o provisionamento de um banco de dados PostgreSQL na Microsoft Azure, com base no cenário apresentado:
+
+![Azure PostgreSQL Architecture](https://via.placeholder.com/800x600?text=Azure+PostgreSQL+Architecture)
+
+Componentes da Arquitetura:
+
+1. **Resource Group**: Grupo de recursos na Azure onde todos os recursos relacionados serão provisionados.
+
+2. **Azure Database for PostgreSQL**: Serviço de banco de dados gerenciado da Microsoft que permite provisionar um servidor PostgreSQL na nuvem. Isso inclui:
+   - Servidor PostgreSQL
+   - Base de dados inicial
+   - Regras de firewall para controlar o acesso
+
+3. **Aplicação Cliente**: Aplicação que se conecta ao banco de dados PostgreSQL hospedado no Azure. Pode ser uma aplicação on-premises, uma aplicação em VMs na Azure ou uma aplicação PaaS (como Azure App Service).
+
+4. **Conexão ao Banco de Dados**: A aplicação cliente se conecta ao banco de dados PostgreSQL no Azure usando uma cadeia de conexão que inclui o nome do servidor, nome do banco de dados, usuário e senha.
+
+Fluxo de Provisionamento:
+
+1. Criar o Resource Group na Azure.
+2. Provisionar o serviço de banco de dados Azure Database for PostgreSQL.
+3. Configurar regras de firewall no servidor PostgreSQL para permitir acesso da aplicação cliente.
+4. Criar um novo banco de dados, schema e tabela no servidor PostgreSQL.
+5. Inserir dados de exemplo na tabela.
+6. Conectar a aplicação cliente ao banco de dados PostgreSQL no Azure e consultar os dados.
+
+Benefícios desta Arquitetura:
+
+- Escalabilidade: O serviço de banco de dados gerenciado do Azure permite dimensionar o banco de dados conforme a necessidade.
+- Alta Disponibilidade: O Azure cuida da disponibilidade e redundância do banco de dados.
+- Segurança: O Azure fornece recursos avançados de segurança, como firewalls, criptografia e controle de acesso.
+- Facilidade de Gerenciamento: O provisionamento e a manutenção do banco de dados são simplificados com o serviço gerenciado.
+
